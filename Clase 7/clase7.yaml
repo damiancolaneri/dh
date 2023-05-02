@@ -1,0 +1,54 @@
+---
+- hosts: localhost
+  tasks:
+    - name: Crear grupo de seguridad con HTTPS, HTTP y SSH
+      amazon.aws.ec2_group:
+        name: { colcoar aqui un nombre para el grupo de seguridad }
+        profile: default
+        vpc_id: { colocar aqui un ID de VPC }
+        description: sg con las reglas
+        region: us-east-1
+        rules:
+          - proto: tcp
+            ports:
+              - 443
+              - 80
+              - 22
+            cidr_ip: 0.0.0.0/0
+            rule_desc: acepto todo el trafico en puerto 443, 80 y 22
+    - name: Creamos nuestro servidor
+      amazon.aws.ec2_instance:
+        name: { Colocar aqui un nombre para la instancia EC2 }
+        region: us-east-1
+        security_group:
+          {
+            Colocar aqui el nombre que le dimos al grupo de seguridad en el task anterior,
+          }
+        profile: default
+        instance_type: t2.micro
+        image_id: ami-0557a15b87f6559cf
+        wait: true
+        wait_timeout: 500
+        volumes:
+          - device_name: /dev/xvda
+            ebs:
+              volume_type: gp2
+              volume_size: 8
+              delete_on_termination: true
+        vpc_subnet_id: { colocar aqui una subnet valida }
+        network:
+          assign_public_ip: true
+        key_name:
+          {
+            Colocar aqui el nombre del archivo .pem que generamos y descargamos de AWS,
+            recordar dar permisos (chmod 400 archivo.pem),
+          }
+        tags:
+          name: { colcocar aqui una etiqueta/nombre para la instancia EC" }
+      register: EC2
+    - name: IP Pública de nuestro servidor
+      debug:
+        var: EC2.instances[0].public_ip_address
+    - name: DNS Público de nuestro servidor
+      debug:
+        var: EC2.instances[0].public_dns_name
